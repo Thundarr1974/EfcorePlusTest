@@ -33,7 +33,7 @@ namespace ZEFPlusTest
                                                                  WHERE p.Id = {1}").FutureValue();
 
                 var students = context.Profiles
-                                      .FromSqlInterpolated($@"SELECT [Id]
+                                      .FromSqlInterpolated($@"SELECT *
                                                               FROM Profile p
                                                               WHERE p.Id > {1}
                                                               ORDER BY Id
@@ -51,11 +51,12 @@ namespace ZEFPlusTest
             try
             {
                 var qry = from p in context.Profiles
-                          join pid in context.FromEnum<ProfileId>() on p.Id equals pid.Value
-                          select new
+                          join pid in context.FromEnum<ProfileId>() on (int)p.Id equals pid.Value
+                          where p.Id > 0
+                          select new ProfileView
                           {
-                              p.Id,
-                              pid.Name
+                              Id = p.Id,
+                              Name = pid.Name
                           };
 
 
@@ -78,5 +79,12 @@ namespace ZEFPlusTest
             Regex appPathMatcher = new Regex(@"(?<!fil)[A-Za-z]:\\+[\S\s]*?(?=\\+bin)");
             return Path.Combine(appPathMatcher.Match(exePath).Value, "App_Data");
         }
+    }
+
+    public class ProfileView
+    {
+        public ProfileId Id { get; set; }
+
+        public string Name { get; set; }
     }
 }

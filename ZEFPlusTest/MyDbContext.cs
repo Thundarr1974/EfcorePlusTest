@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 
 namespace ZEFPlusTest
@@ -27,7 +29,13 @@ namespace ZEFPlusTest
                 eb.HasKey(x => x.Id);
             });
 
+            modelBuilder.Entity<Profile>()
+                .Property(p => p.Properties)
+                .HasJsonConversion();
+
             modelBuilder.Entity<LocalEnum>().HasNoKey().ToView("_no_table");
+
+            AddSoftDeleteFilter<Profile>(modelBuilder);
         }
 
         public IQueryable<LocalEnum> FromEnum<T>()
@@ -41,6 +49,35 @@ namespace ZEFPlusTest
             var sql = $"SELECT * FROM (VALUES {string.Join(", ", selects)}) AS {typeT.Name}([Value], [Name])";
 
             return LocalEnums.FromSqlRaw(sql);
+        }
+
+        protected static void AddSoftDeleteFilter<TEntity>(ModelBuilder modelBuilder) where TEntity : EntityBase
+        {
+            modelBuilder.Entity<TEntity>().HasQueryFilter(x => !x.SoftDeleted);
+        }
+    }
+
+    public abstract class EntityBase
+    {
+        internal bool ForceDelete;
+
+        [Required]
+        public DateTimeOffset WhenCreated { get; set; }
+
+        [Required]
+        public DateTimeOffset WhenUpdated { get; set; }
+
+        [Required]
+        [Timestamp]
+        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+        public byte[] RowVersion { get; set; }
+
+        [Required()]
+        public bool SoftDeleted { get; set; }
+
+        public void DisableSoftDelete()
+        {
+            ForceDelete = true;
         }
     }
 }
